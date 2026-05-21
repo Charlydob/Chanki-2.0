@@ -1,22 +1,51 @@
-import { getCards, getProgress, saveProgress } from '../storage.local.js';
+import { getCards, getProgress, saveProgress, getExploreState } from '../storage.local.js';
 import { validateGermanAnswer } from '../shared/validator.js';
 import { speakText } from '../shared/speech.js';
 
+const phraseFallback = [
+  { id: 'p1', es: 'Hoy hace buen tiempo.', de: 'Heute ist gutes Wetter.' },
+  { id: 'p2', es: 'Quiero practicar alemán.', de: 'Ich möchte Deutsch üben.' },
+  { id: 'p3', es: 'Mañana estudio una hora.', de: 'Morgen lerne ich eine Stunde.' }
+];
+
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-export const renderStudy = (root) => {
-  const cards = getCards();
-  const randomPhrase = { es: 'Estoy aprendiendo alemán hoy.', de: 'Ich lerne heute Deutsch.', word: 'lernen', translation: 'aprender' };
-  if (!cards.length) return void(root.innerHTML = `<div class="view-grid"><article class="card">No hay tarjetas para estudiar</article><article class="card"><h3>Frase aleatoria</h3><p>${randomPhrase.es}</p><button id="show-de" class="btn-ghost">Mostrar traducción</button><p id="phrase-de" class="is-hidden">${randomPhrase.de}</p><button id="speak-de" class="btn-ghost">🔊 Audio alemán</button></article></div>`);
+const reviewedPhrasesKey = 'cardshell.phrases.reviewed';
+const getReviewedPhrases = () => JSON.parse(localStorage.getItem(reviewedPhrasesKey) || '{}');
+const saveReviewedPhrases = (v) => localStorage.setItem(reviewedPhrasesKey, JSON.stringify(v));
+
+const buildStudyPool = () => {
+  const cards = getCards().map((card) => ({ ...card, source: 'card' }));
+  const unknownExplore = Object.entries(getExploreState())
+    .filter(([, v]) => v.status === 'unknown')
+    .map(([id]) => ({ id: `explore-${id}`, text: id, translation: 'Repaso desde explorar', source: 'explore' }));
+  return [...cards, ...unknownExplore];
+};
+
+export const renderStudy = async (root) => {
+  const cards = buildStudyPool();
+  if (!cards.length) return void (root.innerHTML = '<div class="view-grid"><article class="card">No hay contenido pendiente para estudiar.</article></div>');
+
   let current = pick(cards); let showingBack = false; let direction = Math.random() > 0.5 ? 'ES→DE' : 'DE→ES';
-  root.innerHTML = `<div class="view-grid"><select id="study-mode" class="input"><option>Cabeza</option><option>Escritura</option><option>Frase aleatoria</option></select><article class="card" id="flash"><div class="row"><p id="dir"></p><button id="play" class="btn-ghost">🔊</button></div><h3 id="study-face"></h3><div class="row"><button id="flip" class="btn-ghost">Girar</button><button data-grade="known" class="btn-ghost">La sabía</button><button data-grade="doubt" class="btn-ghost">Dudosa</button><button data-grade="fail" class="btn-ghost">No la sabía</button></div><div id="write" class="view-grid is-hidden"><input id="ans" class="input" placeholder="Tu respuesta"><button id="check" class="btn">Validar</button><p id="result"></p></div></article><article id="phrase" class="card is-hidden"><h3>Frase aleatoria</h3><p>${randomPhrase.es}</p><button id="show-de" class="btn-ghost">Mostrar traducción</button><p id="phrase-de" class="is-hidden">${randomPhrase.de}</p><button id="speak-de" class="btn-ghost">🔊 Audio alemán</button><button id="save-word" class="btn-ghost">Guardar palabra “${randomPhrase.word}”</button></article></div>`;
-  const paint = () => { root.querySelector('#dir').textContent = direction; root.querySelector('#study-face').textContent = showingBack ? (direction === 'ES→DE' ? current.translation : current.text) : (direction === 'ES→DE' ? current.text : current.translation); };
+  let phrase = phraseFallback.find((p) => !getReviewedPhrases()[p.id]) || pick(phraseFallback);
+
+  root.innerHTML = `<div class="view-grid"><select id="study-mode" class="input compact"><option>Cabeza</option><option>Escritura</option><option>Frase aleatoria</option></select><article class="card" id="flash"><div class="row row-compact"><p id="dir"></p><button id="play" class="btn-icon">▶︎</button></div><h3 id="study-face"></h3><div class="row row-compact"><button id="flip" class="btn-ghost">Girar</button><button data-grade="known" class="btn-ghost">La sabía</button><button data-grade="doubt" class="btn-ghost">Dudosa</button><button data-grade="fail" class="btn-ghost">No la sabía</button></div><div id="write" class="view-grid is-hidden"><input id="ans" class="input compact" placeholder="Tu respuesta"><button id="check" class="btn">Validar</button><p id="result"></p></div></article><article id="phrase" class="card is-hidden"><h3>Frase aleatoria</h3><p>${phrase.es}</p><button id="show-de" class="btn-ghost">Mostrar traducción</button><p id="phrase-de" class="is-hidden">${phrase.de}</p><div class="row row-compact"><button data-phrase="known" class="btn-ghost">La sabía</button><button data-phrase="doubt" class="btn-ghost">Dudosa</button><button data-phrase="fail" class="btn-ghost">No la sabía</button><button id="speak-de" class="btn-icon">▶︎</button></div></article></div>`;
+
+  const paint = () => { root.querySelector('#dir').textContent = `${direction} · ${current.source || 'card'}`; root.querySelector('#study-face').textContent = showingBack ? (direction === 'ES→DE' ? current.translation : current.text) : (direction === 'ES→DE' ? current.text : current.translation); };
   const next = () => { current = pick(cards); showingBack = false; direction = Math.random() > 0.5 ? 'ES→DE' : 'DE→ES'; paint(); };
   paint();
-  root.querySelector('#play').onclick=()=>speakText(direction==='ES→DE'?current.translation:current.text, direction==='ES→DE'?'de-DE':'es-ES');
-  root.querySelector('#study-mode').onchange=(e)=>{const phrase=e.target.value==='Frase aleatoria'; root.querySelector('#flash').classList.toggle('is-hidden',phrase); root.querySelector('#phrase').classList.toggle('is-hidden',!phrase); root.querySelector('#write').classList.toggle('is-hidden', e.target.value !== 'Escritura');};
+
+  root.querySelector('#play').onclick = () => speakText(direction === 'ES→DE' ? current.translation : current.text, direction === 'ES→DE' ? 'de-DE' : 'es-ES');
+  root.querySelector('#study-mode').onchange = (e) => { const isPhrase = e.target.value === 'Frase aleatoria'; root.querySelector('#flash').classList.toggle('is-hidden', isPhrase); root.querySelector('#phrase').classList.toggle('is-hidden', !isPhrase); root.querySelector('#write').classList.toggle('is-hidden', e.target.value !== 'Escritura'); };
   root.querySelector('#flip').onclick = () => { showingBack = !showingBack; paint(); };
-  root.querySelectorAll('[data-grade]').forEach((btn) => btn.onclick = () => { saveProgress([...getProgress(), { cardId: current.id, grade: btn.dataset.grade, at: Date.now() }]); next(); });
+  root.querySelectorAll('[data-grade]').forEach((btn) => btn.onclick = () => { saveProgress([...getProgress(), { cardId: current.id, grade: btn.dataset.grade, at: Date.now(), source: current.source }]); next(); });
   root.querySelector('#check').onclick = () => { const output = validateGermanAnswer({ answer: root.querySelector('#ans').value, expected: direction === 'ES→DE' ? `${current.article ? `${current.article} ` : ''}${current.translation}`.trim() : current.text, requiresArticle: !!current.requiresArticle && direction === 'ES→DE' }); const node = root.querySelector('#result'); node.textContent = output.message; node.className = output.result === 'correct' ? 'status-ok' : output.result === 'warning' ? 'status-warn' : 'status-bad'; };
-  root.querySelector('#show-de').onclick=()=>root.querySelector('#phrase-de').classList.remove('is-hidden'); root.querySelector('#speak-de').onclick=()=>speakText(randomPhrase.de,'de-DE');
+  root.querySelector('#show-de').onclick = () => root.querySelector('#phrase-de').classList.remove('is-hidden');
+  root.querySelector('#speak-de').onclick = () => speakText(phrase.de, 'de-DE');
+  root.querySelectorAll('[data-phrase]').forEach((btn) => btn.onclick = () => {
+    const reviewed = getReviewedPhrases();
+    reviewed[phrase.id] = btn.dataset.phrase;
+    saveReviewedPhrases(reviewed);
+    saveProgress([...getProgress(), { cardId: `phrase-${phrase.id}`, grade: btn.dataset.phrase === 'fail' ? 'fail' : btn.dataset.phrase === 'known' ? 'known' : 'doubt', at: Date.now(), source: 'phrase' }]);
+  });
 };
