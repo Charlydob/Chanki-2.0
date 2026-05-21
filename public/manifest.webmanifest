@@ -1,7 +1,7 @@
 {
   "name": "Cardshell",
   "short_name": "Cardshell",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7ff",
