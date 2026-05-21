@@ -15,6 +15,29 @@ import "../modules/stats/stats.page.css";
 import "../modules/settings/settings.page.css";
 import { createRouter } from "./router";
 import { registerServiceWorker } from "../shared/pwa/register-sw";
+import { initDebugConsole, logEvent, renderFatalError, setBootStatus, setLastError } from "../shared/debug/debug-console";
 
-createRouter(document.querySelector("#app") as HTMLElement);
-registerServiceWorker();
+async function bootstrap() {
+  const app = document.querySelector("#app") as HTMLElement | null;
+  if (!app) throw new Error("No existe #app");
+
+  initDebugConsole(app);
+  logEvent("[boot:dom-ready]");
+  setBootStatus("importando módulos");
+
+  try {
+    logEvent("[boot:main-imported]");
+    logEvent("[boot:shell-render:start]");
+    setBootStatus("renderizando shell");
+    createRouter(app);
+    logEvent("[boot:shell-render:ready]");
+    registerServiceWorker();
+    setBootStatus("app lista");
+  } catch (error) {
+    setLastError(error);
+    logEvent("[boot:error]", "error");
+    renderFatalError(app, error);
+  }
+}
+
+void bootstrap();

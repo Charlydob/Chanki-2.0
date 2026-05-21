@@ -49,3 +49,11 @@
   font-weight: 600;
 }
 /* #endregion */
+
+.boot-screen { padding: 1rem; font-size: .95rem; }
+.boot-screen ul { max-height: 30vh; overflow: auto; }
+#debug-toggle { position: fixed; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; opacity: .15; z-index: 9999; }
+#debug-panel { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 10000; padding: 1rem; }
+.debug-panel-inner { background: #111; color: #fff; border-radius: 12px; padding: 1rem; max-height: 90vh; overflow: auto; }
+.debug-panel-inner pre { white-space: pre-wrap; font-size: .75rem; max-height: 60vh; overflow: auto; }
+.debug-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
