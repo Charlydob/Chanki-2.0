@@ -14,10 +14,12 @@ import { mountStudyPage } from "../modules/study/study.page";
 import { mountExplorePage } from "../modules/explore/explore.page";
 import { mountStatsPage } from "../modules/stats/stats.page";
 import { mountSettingsPage } from "../modules/settings/settings.page";
+import { logEvent } from "../shared/debug/debug-console";
 
 export type RouteName = "auth" | "decks" | "cards" | "study" | "explore" | "stats" | "settings";
 
 export function createRouter(host: HTMLElement) {
+  logEvent("[router:init:start]");
   host.innerHTML = shellHtml;
   const view = host.querySelector("#route-view") as HTMLElement;
   const nav = host.querySelector("#bottom-nav") as HTMLElement;
@@ -34,6 +36,7 @@ export function createRouter(host: HTMLElement) {
   };
 
   const render = async () => {
+    logEvent("[route:navigate]");
     route = guardRoute(route);
     view.innerHTML = templates[route];
     nav.hidden = route === "auth";
@@ -49,6 +52,7 @@ export function createRouter(host: HTMLElement) {
   };
 
   const navigate = (next: RouteName) => { route = next; void render(); };
+  logEvent("[router:init:ready]");
   nav.querySelectorAll("button").forEach((btn) => btn.addEventListener("click", () => navigate((btn as HTMLButtonElement).dataset.route as RouteName)));
   logoutBtn.addEventListener("click", async () => { await logout(); navigate("auth"); });
 

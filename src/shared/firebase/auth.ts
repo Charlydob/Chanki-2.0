@@ -1,4 +1,5 @@
 import { getFirebaseConfig } from "./firebase-app";
+import { logEvent } from "../debug/debug-console";
 
 export type SessionUser = { uid: string; email: string | null; idToken: string };
 const STORAGE_KEY = "cardshell-session";
@@ -41,10 +42,12 @@ export async function registerWithEmail(email: string, password: string): Promis
 export async function logout(): Promise<void> { setSession(null); }
 export function getCurrentUser(): SessionUser | null { return currentUser; }
 export async function waitForAuthReady(): Promise<SessionUser | null> {
+  logEvent("[firebase:init:start]");
   if (currentUser) return currentUser;
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
+  if (!raw) { logEvent("[firebase:init:ready]"); return null; }
   try { currentUser = JSON.parse(raw) as SessionUser; } catch { currentUser = null; }
+  logEvent("[firebase:init:ready]");
   return currentUser;
 }
 export function observeSession(cb: (user: SessionUser | null) => void): () => void {
