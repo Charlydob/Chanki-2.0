@@ -1,9 +1,9 @@
 {
   "name": "Cardshell",
   "short_name": "Cardshell",
-  "start_url": "./",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f6fb",
-  "theme_color": "#f4f6fb",
+  "background_color": "#f4f7ff",
+  "theme_color": "#f4f7ff",
   "icons": []
 }
