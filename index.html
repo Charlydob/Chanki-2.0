@@ -2,69 +2,48 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f6fb" />
-    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f7ff" />
     <title>Cardshell</title>
+    <link rel="manifest" href="./public/manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/shell.css" />
+    <link rel="stylesheet" href="./styles/auth.css" />
+    <link rel="stylesheet" href="./styles/decks.css" />
+    <link rel="stylesheet" href="./styles/cards.css" />
+    <link rel="stylesheet" href="./styles/study.css" />
+    <link rel="stylesheet" href="./styles/explore.css" />
+    <link rel="stylesheet" href="./styles/stats.css" />
+    <link rel="stylesheet" href="./styles/settings.css" />
+    <link rel="stylesheet" href="./styles/debug.css" />
   </head>
   <body>
-    <div id="app" class="cardshell" data-js-status="loading">
-      <header class="app-header">
-        <div>
-          <p class="app-kicker">Arranque seguro</p>
-          <h1>Cardshell</h1>
-        </div>
-        <button id="debug-toggle" class="debug-toggle" type="button" aria-label="Abrir consola interna">●</button>
+    <div class="boot-fallback" id="boot-fallback">
+      <h1>Cardshell</h1>
+      <p>Preparando tu espacio de estudio de alemán...</p>
+    </div>
+
+    <div class="app-shell is-hidden" id="app-shell">
+      <header class="top-bar">
+        <h1 id="view-title">Cardshell</h1>
+        <button class="btn-ghost btn-debug-toggle" id="debug-toggle" aria-label="Abrir debug">•</button>
       </header>
 
-      <main class="app-main">
-        <section class="boot-panel" id="boot-panel">
-          <h2>Diagnóstico de arranque</h2>
-          <p id="boot-status">Cardshell está cargando…</p>
-          <p><strong>Paso actual:</strong> <span id="diag-current">HTML listo</span></p>
-          <p><strong>Último completado:</strong> <span id="diag-last">HTML listo</span></p>
-          <ul class="checks" id="diag-checks">
-            <li data-check="html">✅ HTML listo</li>
-            <li data-check="loading">⏳ JS cargando</li>
-            <li data-check="executed">⬜ JS ejecutado</li>
-            <li data-check="nav">⬜ navegación básica</li>
-          </ul>
-          <div class="panel-actions">
-            <button type="button" data-action="copy-diagnostics">Copiar diagnóstico</button>
-            <button type="button" data-action="hard-reset">Hard reset</button>
-          </div>
-          <noscript>JavaScript está desactivado. Este shell HTML/CSS seguirá visible sin JS.</noscript>
-        </section>
+      <main id="app-view" class="app-view"></main>
 
-        <section class="tab-panel" data-panel="decks"><h3>Mazos</h3><p>Vista mock de mazos.</p></section>
-        <section class="tab-panel" data-panel="cards" hidden><h3>Tarjetas</h3><p>Vista mock de tarjetas.</p></section>
-        <section class="tab-panel" data-panel="study" hidden><h3>Estudiar</h3><p>Vista mock de estudio.</p></section>
-        <section class="tab-panel" data-panel="explore" hidden><h3>Explorar</h3><p>Vista mock de explorar.</p></section>
-        <section class="tab-panel" data-panel="stats" hidden><h3>Stats</h3><p>Vista mock de estadísticas.</p></section>
-        <section class="tab-panel" data-panel="settings" hidden><h3>Ajustes</h3><p>Vista mock de ajustes.</p></section>
-      </main>
-
-      <nav class="bottom-nav" aria-label="Navegación principal">
-        <button type="button" data-tab="decks" class="active">Mazos</button>
-        <button type="button" data-tab="cards">Tarjetas</button>
-        <button type="button" data-tab="study">Estudiar</button>
-        <button type="button" data-tab="explore">Explorar</button>
-        <button type="button" data-tab="stats">Stats</button>
-        <button type="button" data-tab="settings">Ajustes</button>
+      <nav class="bottom-nav" id="bottom-nav">
+        <button data-route="decks">Mazos</button>
+        <button data-route="cards">Tarjetas</button>
+        <button data-route="study">Estudiar</button>
+        <button data-route="explore">Explorar</button>
+        <button data-route="stats">Stats</button>
+        <button data-route="settings">Ajustes</button>
       </nav>
-
-      <aside id="debug-console" class="debug-console" hidden>
-        <div class="debug-console__inner">
-          <h2>Consola interna</h2>
-          <pre id="debug-log">[boot:index-html-ready]</pre>
-          <div class="panel-actions">
-            <button type="button" data-action="copy-errors">Copiar errores</button>
-            <button type="button" data-action="copy-all">Copiar todo</button>
-            <button type="button" data-action="close-debug">Cerrar</button>
-          </div>
-        </div>
-      </aside>
     </div>
-    <script type="module" src="/src/app/main.ts"></script>
+
+    <section id="debug-panel" class="debug-panel is-hidden"></section>
+
+    <script type="module" src="./scripts/app.js"></script>
   </body>
 </html>

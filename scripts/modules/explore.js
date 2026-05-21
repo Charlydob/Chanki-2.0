@@ -1,0 +1,2 @@
+import { mockExplore } from '../shared/mock-data.js';
+export const renderExplore=(root)=>root.innerHTML=`<div class="view-grid"><h2>Explorar</h2>${mockExplore.map(i=>`<article class="card"><h3>${i.word}</h3><p>${i.translation}</p><p>${i.article} · ${i.level} · ${i.type}</p><div class="row"><button class="btn">Guardar</button><button class="btn-ghost">Pasar</button><button class="btn-ghost">Ya me la sé</button></div></article>`).join('')}</div>`;
