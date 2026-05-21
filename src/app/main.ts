@@ -1,69 +1,113 @@
 import "./shell.css";
-import "../styles/tokens.css";
-import "../styles/typography.css";
-import "../styles/themes.css";
-import "../styles/layout.css";
-import "../styles/buttons.css";
-import "../styles/forms.css";
-import "../styles/cards.css";
-import "../modules/auth/auth.page.css";
-import "../modules/decks/decks.page.css";
-import "../modules/cards/cards.page.css";
-import "../modules/study/study.page.css";
-import "../modules/explore/explore.page.css";
-import "../modules/stats/stats.page.css";
-import "../modules/settings/settings.page.css";
 
-type BootLogger = (message: string) => void;
+type Level = "log" | "warn" | "error";
 
-function renderBootShell(host: HTMLElement): BootLogger {
-  host.innerHTML = `
-    <div style="min-height:100dvh;background:#f4f6fb;color:#1b2559;font-family:Inter,system-ui,sans-serif;display:grid;grid-template-rows:auto 1fr auto;">
-      <header style="padding:1rem 1.25rem;background:#ffffff;border-bottom:1px solid #dbe3ff;display:flex;justify-content:space-between;align-items:center;">
-        <strong style="font-size:1.1rem;">Cardshell</strong>
-        <button type="button" aria-label="Debug" style="position:fixed;top:12px;right:12px;z-index:50;padding:.45rem .7rem;border-radius:999px;border:1px solid #9fb3ff;background:#fff;color:#1b2559;">Debug</button>
-      </header>
-      <main style="padding:1rem 1.25rem;">
-        <section style="background:#fff;border:1px solid #dbe3ff;border-radius:12px;padding:1rem;">
-          <h2 style="margin:0 0 .5rem;">Mazos</h2>
-          <p style="margin:0;color:#4f5b8a;">Arranque mínimo activo.</p>
-        </section>
-        <section style="margin-top:1rem;background:#fff;border:1px solid #dbe3ff;border-radius:12px;padding:1rem;">
-          <h3 style="margin:0 0 .5rem;">Boot logs</h3>
-          <pre id="boot-logs" style="margin:0;white-space:pre-wrap;font-size:.85rem;line-height:1.5;color:#1b2559;"></pre>
-        </section>
-      </main>
-      <nav style="padding:.8rem 1.25rem;background:#ffffff;border-top:1px solid #dbe3ff;">Navegación inferior</nav>
-    </div>
-  `;
+const logs: string[] = [];
+const errors: string[] = [];
 
-  const pre = host.querySelector("#boot-logs") as HTMLPreElement | null;
-  return (message: string) => {
-    if (!pre) return;
-    pre.textContent = `${pre.textContent}${pre.textContent ? "\n" : ""}${message}`;
+const app = document.querySelector<HTMLElement>("#app");
+if (!app) throw new Error("#app no existe");
+
+const bootStatus = document.querySelector<HTMLElement>("#boot-status");
+const diagCurrent = document.querySelector<HTMLElement>("#diag-current");
+const diagLast = document.querySelector<HTMLElement>("#diag-last");
+const debugLog = document.querySelector<HTMLElement>("#debug-log");
+const debugConsole = document.querySelector<HTMLElement>("#debug-console");
+
+function appendLog(level: Level, message: string) {
+  const line = `[${level}] ${message}`;
+  logs.push(line);
+  if (level !== "log") errors.push(line);
+  if (debugLog) debugLog.textContent = logs.join("\n");
+}
+
+function markCheck(key: "loading" | "executed" | "nav", text: string, done: boolean) {
+  const target = document.querySelector<HTMLElement>(`[data-check="${key}"]`);
+  if (!target) return;
+  target.textContent = `${done ? "✅" : "⏳"} ${text}`;
+}
+
+function setDiag(current: string, last: string) {
+  if (diagCurrent) diagCurrent.textContent = current;
+  if (diagLast) diagLast.textContent = last;
+}
+
+function copyText(text: string) {
+  void navigator.clipboard.writeText(text);
+}
+
+async function hardReset() {
+  const keys = await caches.keys();
+  await Promise.all(keys.map((key) => caches.delete(key)));
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(regs.map((reg) => reg.unregister()));
+  sessionStorage.clear();
+  location.href = `./?v=${Date.now()}`;
+}
+
+function wireDebugCapture() {
+  const original = {
+    log: console.log.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console)
   };
+
+  console.log = (...args) => {
+    appendLog("log", args.map(String).join(" "));
+    original.log(...args);
+  };
+  console.warn = (...args) => {
+    appendLog("warn", args.map(String).join(" "));
+    original.warn(...args);
+  };
+  console.error = (...args) => {
+    appendLog("error", args.map(String).join(" "));
+    original.error(...args);
+  };
+
+  window.addEventListener("error", (event) => appendLog("error", `window.error ${event.message}`));
+  window.addEventListener("unhandledrejection", (event) => appendLog("error", `unhandledrejection ${String(event.reason)}`));
 }
 
-async function bootstrap() {
-  const app = document.querySelector("#app") as HTMLElement | null;
-  if (!app) {
-    throw new Error("Error de arranque: no existe el contenedor #app en index.html");
-  }
+function wireNavigation() {
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-tab]"));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-panel]"));
 
-  const log = renderBootShell(app);
-  log("[boot:start]");
-  log("[boot:main-loaded]");
-  log("[boot:app-found]");
-  log("[boot:shell-rendered]");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const current = tab.dataset.tab;
+      tabs.forEach((btn) => btn.classList.toggle("active", btn === tab));
+      panels.forEach((panel) => (panel.hidden = panel.dataset.panel !== current));
+      setDiag(`Pestaña: ${current}`, "navegación básica");
+    });
+  });
 
-  try {
-    const { loadTemplate } = await import("../shared/ui/template-loader");
-    await loadTemplate("/src/modules/decks/decks.page.html");
-    log("[boot:templates-loaded]");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    log(`[boot:templates-error] ${message}`);
-  }
+  markCheck("nav", "navegación básica", true);
 }
 
-void bootstrap();
+wireDebugCapture();
+console.log("[boot:main-loaded]");
+app.dataset.jsStatus = "executed";
+if (bootStatus) bootStatus.textContent = "JS ejecutado";
+markCheck("loading", "JS cargando", true);
+markCheck("executed", "JS ejecutado", true);
+setDiag("JS ejecutado", "JS ejecutado");
+wireNavigation();
+
+app.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement;
+  const action = target.dataset.action;
+  if (!action) return;
+
+  if (action === "copy-diagnostics") {
+    copyText(`Paso actual: ${diagCurrent?.textContent}\nÚltimo completado: ${diagLast?.textContent}\n${logs.join("\n")}`);
+  }
+  if (action === "hard-reset") void hardReset();
+  if (action === "copy-errors") copyText(errors.join("\n") || "Sin errores");
+  if (action === "copy-all") copyText(logs.join("\n"));
+  if (action === "close-debug" && debugConsole) debugConsole.hidden = true;
+});
+
+document.querySelector("#debug-toggle")?.addEventListener("click", () => {
+  if (debugConsole) debugConsole.hidden = !debugConsole.hidden;
+});
