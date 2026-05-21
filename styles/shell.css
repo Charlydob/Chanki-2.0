@@ -1,14 +1,14 @@
 /* #region Shell */
 .boot-fallback { min-height: 100dvh; display: grid; place-content: center; text-align: center; padding: 2rem; }
-.app-shell { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
+.app-shell { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem; position: sticky; top: 0; }
-.app-view { padding: 1rem 1rem 6rem; }
+.app-view { padding: 1rem; }
 /* #endregion */
 
 /* #region Bottom Nav */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem; padding: 0.6rem; background: rgba(255,255,255,0.96); border-top: 1px solid #dbe3fa;
+  gap: 0.4rem; padding: 0.6rem; padding-bottom: env(safe-area-inset-bottom); background: rgba(255,255,255,0.96); border-top: 1px solid #dbe3fa;
 }
 .bottom-nav button { border: 0; background: transparent; border-radius: 10px; padding: 0.45rem 0.2rem; color: #3b4b6b; }
 .bottom-nav button.active { background: var(--surface-soft); color: var(--primary); font-weight: 600; }
