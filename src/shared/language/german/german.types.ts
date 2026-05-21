@@ -1,0 +1,1 @@
+export type GermanLevel = "A1" | "A2" | "B1";
