@@ -14,5 +14,5 @@ if(!authMock.user()) return go('login');
 if(r==='decks') renderDecks(root,go); if(r==='cards') renderCards(root,go); if(r==='study') renderStudy(root); if(r==='explore') renderExplore(root); if(r==='stats') renderStats(root); if(r==='settings') renderSettings(root,go,diag,hardReset);
 };
 const go=(r)=>{history.replaceState({},'',`#${r}`);render(r);};
-nav.onclick=(e)=>{const b=e.target.closest('button[data-route]'); if(!b) return; if(b.dataset.route==='cards') return go('decks'); go(b.dataset.route);};
+nav.onclick=(e)=>{const b=e.target.closest('button[data-route]'); if(!b) return; go(b.dataset.route);};
 return {start(){go(authMock.user()?'decks':'login');},go};};

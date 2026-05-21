@@ -1,22 +1,33 @@
 import { getDictionaryEntries } from '../dictionary.service.js';
-import { getDecks, getCards, saveCards, getExploreState, saveExploreState } from '../storage.local.js';
+import { getDecks, saveDecks, getCards, saveCards, getExploreState, saveExploreState } from '../storage.local.js';
+import { speakText } from '../shared/speech.js';
+
 const uid = () => crypto.randomUUID();
-const cooldown = 1000 * 60 * 10;
-const reviewedDeckName = 'Revisadas de explorar';
+const reviewedDeckName = 'Explorar · revisadas';
+const ensureReviewedDeck = () => {
+  const decks = getDecks();
+  let deck = decks.find((d) => d.name === reviewedDeckName);
+  if (!deck) { deck = { id: uid(), name: reviewedDeckName }; saveDecks([...decks, deck]); }
+  return deck;
+};
 
 export const renderExplore = (root) => {
   const state = getExploreState();
-  const entries = getDictionaryEntries().filter((item) => !state[item.id] || state[item.id].nextReviewAt < Date.now());
-  if (!entries.length) return void(root.innerHTML = '<div class="view-grid"><article class="card">No hay sugerencias por ahora.</article></div>');
-  const current = entries[Math.floor(Math.random() * entries.length)];
-  root.innerHTML = `<div class="view-grid"><article class="card"><h3>${current.text}</h3><p>${current.translation}</p><p>${current.article || '-'} · ${current.kind || 'entrada'}</p><div class="row"><button id="save" class="btn">Guardar</button><button id="skip" class="btn-ghost">Pasar</button><button id="known" class="btn-ghost">Ya me la sé</button></div></article></div>`;
+  const entry = getDictionaryEntries()[Math.floor(Math.random() * getDictionaryEntries().length)];
+  if (!entry) return;
+  state[entry.id] = state[entry.id] || { views: 0, status: 'seen', reviewCount: 0 };
+  state[entry.id].views += 1;
+  saveExploreState(state);
+  root.innerHTML = `<div class="view-grid"><article class="card"><div class="row"><h3>${entry.text}</h3><button id="play" class="btn-ghost">🔊</button></div><p>${entry.translation}</p><div class="row"><button id="save" class="btn">Guardar</button><button id="skip" class="btn-ghost">Pasar</button><button id="known" class="btn-ghost">Ya me la sé</button></div></article></div>`;
+  root.querySelector('#play').onclick=()=>speakText(entry.text,'de-DE');
   root.querySelector('#save').onclick = () => {
-    const deckId = getDecks()[0]?.id;
-    if (!deckId) return alert('Crea un mazo primero en Mazos');
-    saveCards([...getCards(), { ...current, id: uid(), deckId, notes: '' }]);
-    state[current.id] = { status: 'saved', nextReviewAt: Date.now() + 1000 };
-    saveExploreState(state); renderExplore(root);
+    const decks = getDecks(); if (!decks.length) return alert('Crea un mazo primero.');
+    const options = decks.map((d, i) => `${i + 1}. ${d.name}`).join('\n');
+    const idx = Number(prompt(`Elige mazo:\n${options}`, '1')) - 1;
+    const deck = decks[idx] || decks[0];
+    saveCards([...getCards(), { ...entry, id: uid(), deckId: deck.id, inputLang: 'de' }]);
+    state[entry.id] = { ...(state[entry.id] || {}), status: 'saved' }; saveExploreState(state); renderExplore(root);
   };
-  root.querySelector('#skip').onclick = () => { state[current.id] = { status: 'skipped', nextReviewAt: Date.now() + cooldown }; saveExploreState(state); renderExplore(root); };
-  root.querySelector('#known').onclick = () => { state[current.id] = { status: 'known', bucket: reviewedDeckName, nextReviewAt: Date.now() + cooldown }; saveExploreState(state); renderExplore(root); };
+  root.querySelector('#skip').onclick = () => { state[entry.id] = { ...(state[entry.id] || {}), status: 'skipped', reviewCount: (state[entry.id]?.reviewCount || 0) + 1 }; saveExploreState(state); renderExplore(root); };
+  root.querySelector('#known').onclick = () => { const deck = ensureReviewedDeck(); state[entry.id] = { ...(state[entry.id] || {}), status: 'known', reviewCount: 0, reviewedDeckId: deck.id }; saveExploreState(state); renderExplore(root); };
 };
