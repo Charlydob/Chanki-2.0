@@ -1,0 +1,4 @@
+input, select, textarea {
+  width: 100%; padding: .7rem; border-radius: .7rem; border: 1px solid var(--border);
+}
+label { font-size: .85rem; font-weight: 600; }
