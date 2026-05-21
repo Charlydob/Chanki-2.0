@@ -8,11 +8,62 @@
     <title>Cardshell</title>
   </head>
   <body>
-    <div id="app">
-      <section style="padding: 1rem; font-family: Inter, system-ui, sans-serif; color: #1b2559;">
-        <h1 style="margin: 0 0 .5rem; font-size: 1.25rem;">Cardshell está cargando…</h1>
-        <p style="margin: 0; font-size: .95rem;">Si esto no cambia, main.ts no se ha ejecutado.</p>
-      </section>
+    <div id="app" class="cardshell" data-js-status="loading">
+      <header class="app-header">
+        <div>
+          <p class="app-kicker">Arranque seguro</p>
+          <h1>Cardshell</h1>
+        </div>
+        <button id="debug-toggle" class="debug-toggle" type="button" aria-label="Abrir consola interna">●</button>
+      </header>
+
+      <main class="app-main">
+        <section class="boot-panel" id="boot-panel">
+          <h2>Diagnóstico de arranque</h2>
+          <p id="boot-status">Cardshell está cargando…</p>
+          <p><strong>Paso actual:</strong> <span id="diag-current">HTML listo</span></p>
+          <p><strong>Último completado:</strong> <span id="diag-last">HTML listo</span></p>
+          <ul class="checks" id="diag-checks">
+            <li data-check="html">✅ HTML listo</li>
+            <li data-check="loading">⏳ JS cargando</li>
+            <li data-check="executed">⬜ JS ejecutado</li>
+            <li data-check="nav">⬜ navegación básica</li>
+          </ul>
+          <div class="panel-actions">
+            <button type="button" data-action="copy-diagnostics">Copiar diagnóstico</button>
+            <button type="button" data-action="hard-reset">Hard reset</button>
+          </div>
+          <noscript>JavaScript está desactivado. Este shell HTML/CSS seguirá visible sin JS.</noscript>
+        </section>
+
+        <section class="tab-panel" data-panel="decks"><h3>Mazos</h3><p>Vista mock de mazos.</p></section>
+        <section class="tab-panel" data-panel="cards" hidden><h3>Tarjetas</h3><p>Vista mock de tarjetas.</p></section>
+        <section class="tab-panel" data-panel="study" hidden><h3>Estudiar</h3><p>Vista mock de estudio.</p></section>
+        <section class="tab-panel" data-panel="explore" hidden><h3>Explorar</h3><p>Vista mock de explorar.</p></section>
+        <section class="tab-panel" data-panel="stats" hidden><h3>Stats</h3><p>Vista mock de estadísticas.</p></section>
+        <section class="tab-panel" data-panel="settings" hidden><h3>Ajustes</h3><p>Vista mock de ajustes.</p></section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Navegación principal">
+        <button type="button" data-tab="decks" class="active">Mazos</button>
+        <button type="button" data-tab="cards">Tarjetas</button>
+        <button type="button" data-tab="study">Estudiar</button>
+        <button type="button" data-tab="explore">Explorar</button>
+        <button type="button" data-tab="stats">Stats</button>
+        <button type="button" data-tab="settings">Ajustes</button>
+      </nav>
+
+      <aside id="debug-console" class="debug-console" hidden>
+        <div class="debug-console__inner">
+          <h2>Consola interna</h2>
+          <pre id="debug-log">[boot:index-html-ready]</pre>
+          <div class="panel-actions">
+            <button type="button" data-action="copy-errors">Copiar errores</button>
+            <button type="button" data-action="copy-all">Copiar todo</button>
+            <button type="button" data-action="close-debug">Cerrar</button>
+          </div>
+        </div>
+      </aside>
     </div>
     <script type="module" src="/src/app/main.ts"></script>
   </body>
