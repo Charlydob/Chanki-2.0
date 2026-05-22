@@ -1,4 +1,4 @@
-import { getCards, getProgress, saveProgress, getExploreState } from '../storage.local.js';
+import { getCards, getProgress, saveProgress } from '../storage.local.js';
 import { validateGermanAnswer } from '../shared/validator.js';
 import { speakText } from '../shared/speech.js';
 
@@ -14,13 +14,7 @@ const reviewedPhrasesKey = 'cardshell.phrases.reviewed';
 const getReviewedPhrases = () => JSON.parse(localStorage.getItem(reviewedPhrasesKey) || '{}');
 const saveReviewedPhrases = (v) => localStorage.setItem(reviewedPhrasesKey, JSON.stringify(v));
 
-const buildStudyPool = () => {
-  const cards = getCards().map((card) => ({ ...card, source: 'card' }));
-  const unknownExplore = Object.entries(getExploreState())
-    .filter(([, v]) => v.status === 'unknown')
-    .map(([id]) => ({ id: `explore-${id}`, text: id, translation: 'Repaso desde explorar', source: 'explore' }));
-  return [...cards, ...unknownExplore];
-};
+const buildStudyPool = () => getCards().map((card) => ({ ...card, source: card.source || 'card' }));
 
 export const renderStudy = async (root) => {
   const cards = buildStudyPool();

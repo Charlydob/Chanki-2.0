@@ -15,6 +15,21 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('debug-toggle').onclick = () => debug.open();
   router.start();
   fallback.classList.add('is-hidden'); app.classList.remove('is-hidden');
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
+
+  const manifestHref = document.querySelector('link[rel="manifest"]')?.getAttribute('href') || '';
+  const standaloneMatch = window.matchMedia('(display-mode: standalone)').matches;
+  console.info('[pwa:standalone:status]', {
+    href: location.href,
+    manifestHref,
+    displayModeStandalone: standaloneMatch,
+    navigatorStandalone: Boolean(navigator.standalone)
+  });
+
+  if ('serviceWorker' in navigator) {
+    await navigator.serviceWorker.register('./service-worker.js');
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    console.info('[pwa:sw:registrations]', registrations.map((r) => ({ scope: r.scope, active: Boolean(r.active) })));
+  }
+
   console.log('[boot:app-ready]');
 });
