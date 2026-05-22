@@ -1,0 +1,10 @@
+/* #region View */
+.view-grid { display: grid; gap: 0.8rem; }
+.row { display: flex; gap: 0.6rem; }
+.row > * { flex: 1; }
+.status-ok { color: var(--success); }
+.status-warn { color: var(--warning); }
+.status-bad { color: var(--danger); }
+/* #endregion */
+
+.input.compact{padding:.55rem .7rem}.article-der{color:#2f6dff}.article-die{color:#ff4fa1}.article-das{color:#8b5cf6}.lang.active{background:var(--surface-soft)}

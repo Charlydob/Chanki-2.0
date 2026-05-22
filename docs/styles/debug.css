@@ -1,0 +1,13 @@
+/* #region View */
+.view-grid { display: grid; gap: 0.8rem; }
+.row { display: flex; gap: 0.6rem; }
+.row > * { flex: 1; }
+.status-ok { color: var(--success); }
+.status-warn { color: var(--warning); }
+.status-bad { color: var(--danger); }
+/* #endregion */
+/* #region Debug */
+.debug-panel { position: fixed; inset: 8% 4%; background: #0f172ae8; color:#e8edff; border-radius: 16px; padding: 1rem; z-index: 30; overflow:auto; }
+.debug-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.debug-log { font-family: ui-monospace, monospace; font-size: .75rem; white-space: pre-wrap; background:#0007; padding:.6rem; border-radius: 10px; max-height: 45vh; overflow:auto; }
+/* #endregion */
