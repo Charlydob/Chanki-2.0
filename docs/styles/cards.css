@@ -1,10 +1,1 @@
-/* #region View */
-.view-grid { display: grid; gap: 0.8rem; }
-.row { display: flex; gap: 0.6rem; }
-.row > * { flex: 1; }
-.status-ok { color: var(--success); }
-.status-warn { color: var(--warning); }
-.status-bad { color: var(--danger); }
-/* #endregion */
-
-.input.compact{padding:.55rem .7rem}.article-der{color:#2f6dff}.article-die{color:#ff4fa1}.article-das{color:#8b5cf6}.lang.active{background:var(--surface-soft)}
+.cards-header{align-items:center;justify-content:space-between}.cards-header h2{margin:0}.card-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem}.deck-item{margin-bottom:.7rem}.btn-mini{padding:.35rem .6rem;min-height:30px;font-size:.86rem}.modal{position:fixed;inset:0;background:rgba(14,20,38,.35);display:grid;place-items:center;padding:1rem;z-index:20}.modal-card{width:min(560px,100%)}.lang.active{background:var(--primary);color:#fff}

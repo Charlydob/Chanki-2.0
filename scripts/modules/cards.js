@@ -1,24 +1,105 @@
 import { getCards, saveCards, getDecks, getSelectedDeckId, saveSelectedDeckId } from '../storage.local.js';
 import { translateText } from '../translate.service.js';
-import { lookupGermanNoun, articleColorClass } from '../german-lookup.service.js';
 import { speakText, getSpeechLangForCard } from '../shared/speech.js';
 
 const uid = () => crypto.randomUUID();
+const VERB_PATTERN = /en$/i;
+
+const emptyDraft = (deckId, inputLang = 'de') => ({ id: '', deckId, inputLang, text: '', translation: '', article: '', plural: '', conjugation: '', example: '', notes: '', tags: [] });
 
 export const renderCards = (root, go) => {
   const deck = getDecks().find((d) => d.id === (getSelectedDeckId() || getDecks()[0]?.id));
   if (!deck) return void go('decks');
   saveSelectedDeckId(deck.id);
 
-  root.innerHTML = `<div class="view-grid"><div class="row"><button id="back" class="btn-chip">←</button><h2>${deck.name}</h2><span class="small" id="counter"></span><button id="toggle-form" class="btn-chip">+ Tarjeta</button></div><article id="card-form" class="card view-grid is-hidden"><div class="row"><button class="btn-ghost lang active" data-lang="de">Alemán</button><button class="btn-ghost lang" data-lang="es">Español</button></div><input id="text" class="input compact" placeholder="Texto principal"><div class="row"><input id="translation" class="input compact" placeholder="Traducción editable"><button id="translate-btn" class="btn-ghost">Traducir</button></div><div class="row"><select id="article" class="input compact"><option value="">manual</option><option value="der">der</option><option value="die">die</option><option value="das">das</option></select><div id="article-pill" class="small"></div></div><input id="plural" class="input compact" placeholder="Plural"><input id="example" class="input compact" placeholder="Ejemplo"><textarea id="notes" class="input compact" placeholder="Notas"></textarea><input id="tags" class="input compact" placeholder="Tags libres (coma separada)"><button id="lookup" class="btn-ghost">Lookup artículo/plural</button><button id="save-card" class="btn">Guardar</button></article><div id="card-list"></div></div>`;
-  let inputLang='de'; const list=root.querySelector('#card-list');
-  const paint=()=>{const cards=getCards().filter((c)=>c.deckId===deck.id);root.querySelector('#counter').textContent=`${cards.length} tarjetas`; list.innerHTML=cards.length?cards.map((c)=>`<article class="card"><div class="row"><strong>${c.article?`${c.article} `:''}${c.text}</strong><button class="btn-icon play" data-text="${c.text}">▶︎</button></div><p>${c.translation}</p></article>`).join(''):'<article class="card">No hay tarjetas.</article>';};
+  let draft = emptyDraft(deck.id);
+  let editId = null;
+  let debounceTimer = null;
+
+  root.innerHTML = `<div class="view-grid cards-view"><div class="row row-compact cards-header"><button id="back" class="btn-chip btn-mini">←</button><h2>${deck.name}</h2><span class="small" id="counter"></span><button id="open-modal" class="btn btn-mini">+ Tarjeta</button></div><div id="card-list"></div></div><div id="card-modal" class="modal is-hidden"></div>`;
+
+  const list = root.querySelector('#card-list');
+  const modal = root.querySelector('#card-modal');
+
+  const paint = () => {
+    const cards = getCards().filter((c) => c.deckId === deck.id);
+    root.querySelector('#counter').textContent = `${cards.length} tarjetas`;
+    list.innerHTML = cards.length
+      ? cards.map((c) => `<article class="card card-row"><div><strong>${c.text}</strong><p>${c.translation || '<span class="small">Sin traducción</span>'}</p></div><div class="row row-compact"><button class="btn-icon btn-mini play" data-text="${c.text}" title="Audio">▶</button><button class="btn-icon btn-mini edit" data-id="${c.id}" title="Editar">✏</button><button class="btn-icon btn-mini del" data-id="${c.id}" title="Eliminar">🗑</button></div></article>`).join('')
+      : '<article class="card">No hay tarjetas.</article>';
+  };
+
+  const isGermanVerb = (text) => draft.inputLang === 'de' && VERB_PATTERN.test((text || '').trim());
+  const conjugationLink = (text) => `https://konjugator.reverso.net/konjugation-deutsch-verb-${encodeURIComponent((text || '').trim())}.html`;
+
+  const renderModal = (error = '') => {
+    modal.innerHTML = `<div class="modal-card card view-grid"><div class="row row-compact"><button class="btn-ghost lang ${draft.inputLang === 'de' ? 'active' : ''}" data-lang="de">Alemán</button><button class="btn-ghost lang ${draft.inputLang === 'es' ? 'active' : ''}" data-lang="es">Español</button></div><input id="text" class="input compact" placeholder="Texto principal" value="${draft.text}"><input id="translation" class="input compact" placeholder="Traducción" value="${draft.translation}"><div class="row"><select id="article" class="input compact"><option value="">—</option><option value="der" ${draft.article === 'der' ? 'selected' : ''}>der</option><option value="die" ${draft.article === 'die' ? 'selected' : ''}>die</option><option value="das" ${draft.article === 'das' ? 'selected' : ''}>das</option></select><input id="plural" class="input compact" placeholder="Plural" value="${draft.plural}"></div><input id="conjugation" class="input compact" placeholder="Conjugación (si aplica)" value="${draft.conjugation}">${isGermanVerb(draft.text) ? `<a class="small" target="_blank" rel="noopener" href="${conjugationLink(draft.text)}">Conjugar verbo</a>` : ''}<input id="example" class="input compact" placeholder="Ejemplo" value="${draft.example}"><textarea id="notes" class="input compact" placeholder="Notas">${draft.notes}</textarea><input id="tags" class="input compact" placeholder="Tags libres" value="${draft.tags.join(', ')}">${error ? `<p class="status-bad">${error}</p>` : ''}<div class="row"><button id="translate-btn" class="btn-ghost btn-mini">Traducir</button><button id="save-card" class="btn btn-mini">Guardar</button><button id="cancel-modal" class="btn-ghost btn-mini">Cancelar</button></div></div>`;
+    modal.classList.remove('is-hidden');
+
+    modal.querySelectorAll('.lang').forEach((btn) => btn.onclick = () => { draft.inputLang = btn.dataset.lang; renderModal(); });
+
+    const syncDraft = () => {
+      draft.text = modal.querySelector('#text').value.trim();
+      draft.translation = modal.querySelector('#translation').value.trim();
+      draft.article = modal.querySelector('#article').value;
+      draft.plural = modal.querySelector('#plural').value.trim();
+      draft.conjugation = modal.querySelector('#conjugation').value.trim();
+      draft.example = modal.querySelector('#example').value.trim();
+      draft.notes = modal.querySelector('#notes').value.trim();
+      draft.tags = modal.querySelector('#tags').value.split(',').map((t) => t.trim()).filter(Boolean);
+    };
+
+    const textInput = modal.querySelector('#text');
+    textInput.oninput = () => {
+      syncDraft();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        if (!draft.text || draft.translation) return;
+        const translated = await translateText({ text: draft.text, from: draft.inputLang, to: draft.inputLang === 'de' ? 'es' : 'de' });
+        if (!translated) return renderModal('No se pudo traducir');
+        draft.translation = translated;
+        renderModal();
+      }, 700);
+    };
+
+    modal.querySelector('#translate-btn').onclick = async () => {
+      syncDraft();
+      const translated = await translateText({ text: draft.text, from: draft.inputLang, to: draft.inputLang === 'de' ? 'es' : 'de' });
+      if (!translated) return renderModal('No se pudo traducir');
+      draft.translation = translated;
+      renderModal();
+    };
+
+    modal.querySelector('#save-card').onclick = () => {
+      syncDraft();
+      if (!draft.text || !draft.translation) return;
+      const payload = { ...draft, id: editId || uid(), deckId: deck.id };
+      const cards = getCards();
+      saveCards(editId ? cards.map((c) => c.id === editId ? payload : c) : [...cards, payload]);
+      modal.classList.add('is-hidden');
+      draft = emptyDraft(deck.id);
+      editId = null;
+      paint();
+    };
+    modal.querySelector('#cancel-modal').onclick = () => { modal.classList.add('is-hidden'); draft = emptyDraft(deck.id); editId = null; };
+  };
+
   paint();
-  root.querySelector('#back').onclick=()=>go('decks'); root.querySelector('#toggle-form').onclick=()=>root.querySelector('#card-form').classList.toggle('is-hidden');
-  root.querySelectorAll('.lang').forEach((b)=>b.onclick=()=>{inputLang=b.dataset.lang; root.querySelectorAll('.lang').forEach((x)=>x.classList.toggle('active',x===b));});
-  root.querySelector('#translate-btn').onclick=async()=>{const text=root.querySelector('#text').value.trim();if(!text){alert('Escribe un texto primero');return;}
-    try { const translated=await translateText({text,from:inputLang,to:inputLang==='de'?'es':'de'}); console.info('[translate] source=manual-button result=',translated); if(translated) root.querySelector('#translation').value=translated; else alert('No se obtuvo traducción.'); } catch(e){ alert('Error al traducir.'); }};
-  root.querySelector('#lookup').onclick=async()=>{if(inputLang!=='de')return;const text=root.querySelector('#text').value.trim();const data=await lookupGermanNoun(text);console.info('[lookup] result=',data);if(data.article)root.querySelector('#article').value=data.article;if(data.plural&&!root.querySelector('#plural').value.trim())root.querySelector('#plural').value=data.plural;const v=root.querySelector('#article').value;const pill=root.querySelector('#article-pill');pill.className=`small ${articleColorClass(v)}`;pill.textContent=v?`Artículo: ${v}`:'Sin lookup fiable: usa manual';};
-  list.onclick=(e)=>{const b=e.target.closest('.play'); if(!b) return; const card={inputLang:'de'}; const out=speakText(b.dataset.text,getSpeechLangForCard(card)); if(!out.ok&&out.reason==='unsupported') alert('Audio no disponible en este navegador.');};
-  root.querySelector('#save-card').onclick=()=>{const text=root.querySelector('#text').value.trim();const translation=root.querySelector('#translation').value.trim();if(!text||!translation)return; saveCards([...getCards(),{id:uid(),deckId:deck.id,inputLang,text,translation,article:root.querySelector('#article').value,plural:root.querySelector('#plural').value.trim(),example:root.querySelector('#example').value.trim(),notes:root.querySelector('#notes').value.trim(),tags:root.querySelector('#tags').value.split(',').map(t=>t.trim()).filter(Boolean)}]); paint();};
+  root.querySelector('#back').onclick = () => go('decks');
+  root.querySelector('#open-modal').onclick = () => { editId = null; draft = emptyDraft(deck.id); renderModal(); };
+
+  list.onclick = (e) => {
+    const play = e.target.closest('.play');
+    if (play) return void speakText(play.dataset.text, getSpeechLangForCard({ inputLang: 'de' }));
+    const edit = e.target.closest('.edit');
+    if (edit) {
+      const found = getCards().find((c) => c.id === edit.dataset.id);
+      if (!found) return;
+      editId = found.id;
+      draft = { ...emptyDraft(deck.id), ...found, tags: found.tags || [] };
+      return renderModal();
+    }
+    const del = e.target.closest('.del');
+    if (del) saveCards(getCards().filter((c) => c.id !== del.dataset.id)), paint();
+  };
 };

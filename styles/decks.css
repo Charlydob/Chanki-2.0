@@ -1,8 +1,1 @@
-/* #region View */
-.view-grid { display: grid; gap: 0.8rem; }
-.row { display: flex; gap: 0.6rem; }
-.row > * { flex: 1; }
-.status-ok { color: var(--success); }
-.status-warn { color: var(--warning); }
-.status-bad { color: var(--danger); }
-/* #endregion */
+.deck-list{display:grid;gap:.8rem}.deck-item{border:1px solid #e2e8fa}.card-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
