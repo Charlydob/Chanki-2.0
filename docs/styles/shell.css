@@ -1,0 +1,8 @@
+.boot-fallback { min-height: 100dvh; display: grid; place-content: center; text-align: center; padding: 2rem; }
+.app-shell { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+.top-bar { display: flex; justify-content: space-between; align-items: center; padding: .7rem 1rem; position: sticky; top: 0; background: #f6f8ff; z-index: 5; border-bottom: 1px solid #dbe3fa; }
+.app-view { padding: .8rem; }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; padding: 0.45rem; padding-bottom: env(safe-area-inset-bottom); background: rgba(255,255,255,0.96); border-top: 1px solid #dbe3fa; }
+.bottom-nav button { border: 0; background: transparent; border-radius: 10px; padding: 0.4rem 0.2rem; color: #3b4b6b; }
+.bottom-nav button.active { background: var(--surface-soft); color: var(--primary); font-weight: 600; }
+.btn-debug-toggle { width: 28px; height: 28px; border-radius: 99px; padding: 0; opacity: .5; }
