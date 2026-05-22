@@ -1,8 +1,1 @@
-/* #region View */
-.view-grid { display: grid; gap: 0.8rem; }
-.row { display: flex; gap: 0.6rem; }
-.row > * { flex: 1; }
-.status-ok { color: var(--success); }
-.status-warn { color: var(--warning); }
-.status-bad { color: var(--danger); }
-/* #endregion */
+.flip-card{transition:transform .35s ease;transform-style:preserve-3d;cursor:pointer}.flip-card.is-flipped{transform:rotateY(180deg)}.grade-row button{flex:1;min-height:42px}.grade-known{background:#2eaf55}.grade-doubt{background:#f3bf25;color:#222}.grade-fail{background:#d83a3a}
