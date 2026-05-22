@@ -1,1 +1,5 @@
-.deck-list{display:grid;gap:.8rem}.deck-item{border:1px solid #e2e8fa}.card-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.deck-list,.deck-cards-list{display:grid;gap:.9rem}
+.deck-item{border:1px solid #e2e8fa}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:.7rem}
+.back-tiny{width:auto;max-width:96px;padding:.2rem .45rem;font-size:.78rem}
+.icon-plain{background:transparent;border:none;min-height:auto;padding:.1rem .2rem;font-size:1rem}

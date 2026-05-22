@@ -5,27 +5,28 @@ const localFallback = [
   { id: 'local-w4', text: 'der Tisch', translation: 'la mesa', article: 'der', plural: 'die Tische', example: 'Der Tisch ist neu.' }
 ];
 
-const API_URL = 'https://random-word-api.herokuapp.com/word?lang=de&number=20';
+const API_URL = 'https://de.wiktionary.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=30&format=json&origin=*';
 
-const mapWord = (word, index) => ({
-  id: `api-${word}-${index}`,
-  text: String(word || '').trim(),
-  translation: '',
-  article: '',
-  plural: '',
-  example: ''
+const normalize = (entry) => ({
+  id: `wiktionary-${entry.id}`,
+  text: String(entry.title || '').trim(),
+  translation: '', article: '', plural: '', example: ''
 });
 
-export const fetchDictionaryEntries = async () => {
+export const fetchDictionaryEntries = async ({ excludeIds = [] } = {}) => {
+  const excluded = new Set(excludeIds);
   try {
     const response = await fetch(API_URL, { headers: { accept: 'application/json' } });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const words = await response.json();
-    const entries = Array.isArray(words) ? words.map(mapWord).filter((entry) => entry.text) : [];
+    const data = await response.json();
+    const randomItems = data?.query?.random || [];
+    const entries = randomItems
+      .map(normalize)
+      .filter((item) => item.text && !excluded.has(item.id));
     if (!entries.length) throw new Error('empty-api-result');
     return entries;
   } catch (error) {
     console.warn('[dictionary:fallback-local]', error?.message || error);
-    return [...localFallback];
+    return localFallback.filter((item) => !excluded.has(item.id));
   }
 };
