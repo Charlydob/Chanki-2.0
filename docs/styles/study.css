@@ -1,1 +1,1 @@
-.flip-card{transition:transform .35s ease;transform-style:preserve-3d;cursor:pointer}.flip-card.is-flipped{transform:rotateY(180deg)}.grade-row button{flex:1;min-height:42px}.grade-known{background:#2eaf55}.grade-doubt{background:#f3bf25;color:#222}.grade-fail{background:#d83a3a}
+.grade-row button{flex:1;min-height:36px;padding:.35rem .45rem;font-size:.84rem}.grade-known{background:#2eaf55}.grade-doubt{background:#f3bf25;color:#222}.grade-fail{background:#d83a3a}

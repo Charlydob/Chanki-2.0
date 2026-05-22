@@ -5,7 +5,7 @@ import { speakText } from '../shared/speech.js';
 
 const uid = () => crypto.randomUUID();
 const reviewedDeckName = 'Explorar · revisadas';
-let activeRequestId = 0;
+const CURRENT_KEY = 'cardshell.currentExploreItem';
 
 const ensureReviewedDeck = () => {
   const decks = getDecks();
@@ -14,46 +14,42 @@ const ensureReviewedDeck = () => {
   return deck;
 };
 
-const excluded = ['known', 'unknown', 'saved', 'skipped'];
 const reviewedIds = () => new Set(getCards().filter((c) => c.source === 'explore' && c.sourceItemId).map((c) => c.sourceItemId));
-const currentRoute = () => (location.hash || '').replace('#/', '');
 
-const withTimeout = (promise, ms = 8000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+const pickEntry = (entries) => {
+  const state = getExploreState();
+  const eligible = entries.filter((item) => !reviewedIds().has(item.id) && state[item.id]?.status !== 'known' && state[item.id]?.status !== 'unknown' && state[item.id]?.status !== 'saved');
+  if (!eligible.length) return null;
+  const current = JSON.parse(localStorage.getItem(CURRENT_KEY) || 'null');
+  if (current && eligible.some((i) => i.id === current.id)) return current;
+  const next = eligible[Math.floor(Math.random() * eligible.length)];
+  localStorage.setItem(CURRENT_KEY, JSON.stringify(next));
+  return next;
+};
 
 export const renderExplore = async (root) => {
-  const requestId = ++activeRequestId;
   root.innerHTML = '<div class="view-grid"><article class="card">Cargando palabras…</article></div>';
-
-  let entries;
-  try {
-    entries = await withTimeout(fetchDictionaryEntries(), 8000);
-  } catch {
-    if (requestId !== activeRequestId || currentRoute() !== 'explore') return;
-    root.innerHTML = '<div class="view-grid"><article class="card"><p>Error al cargar palabras.</p><button id="retry" class="btn">Reintentar</button></article></div>';
-    root.querySelector('#retry').onclick = () => renderExplore(root);
-    return;
+  let entries = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    entries = await fetchDictionaryEntries({ excludeIds: [...reviewedIds()] });
+    if (entries.length) break;
   }
+  if (!entries.length) return void (root.innerHTML = '<div class="view-grid"><article class="card">Error al cargar palabras.</article></div>');
 
-  if (requestId !== activeRequestId || currentRoute() !== 'explore') return;
-  const state = getExploreState();
-  const available = entries.filter((entry) => !excluded.includes(state[entry.id]?.status) && !reviewedIds().has(entry.id));
-  if (!available.length) return void (root.innerHTML = '<div class="view-grid"><article class="card">No quedan palabras nuevas en Explorar.</article></div>');
+  const entry = pickEntry(entries);
+  if (!entry) return void (root.innerHTML = '<div class="view-grid"><article class="card">No quedan palabras nuevas tras varios intentos.</article></div>');
 
-  const entry = available[Math.floor(Math.random() * available.length)];
-  state[entry.id] = { ...(state[entry.id] || {}), views: (state[entry.id]?.views || 0) + 1, status: 'seen' };
-  saveExploreState(state);
-
-  let translation = entry.translation || await translateText({ text: entry.text, from: 'de', to: 'es' });
-  const failed = !translation;
-
-  root.innerHTML = `<div class="view-grid"><article class="card"><div class="row row-compact"><h3>${entry.text}</h3><button id="play" class="btn-icon btn-mini">▶</button></div>${failed ? '<p>No se pudo traducir</p>' : `<p>${translation}</p>`}<div class="row row-compact"><button id="save" class="btn btn-mini">Guardar</button><button id="skip" class="btn-ghost btn-mini">Pasar</button><button id="known" class="btn-ghost btn-mini">Ya me la sé</button></div></article></div>`;
+  const translation = entry.translation || await translateText({ text: entry.text, from: 'de', to: 'es' });
+  root.innerHTML = `<div class="view-grid"><article class="card"><div class="row row-compact"><h3>${entry.text}</h3><button id="play" class="btn-mini icon-plain">▶</button></div><p>${translation || 'No se pudo traducir'}</p><div class="row row-compact"><button id="save" class="btn btn-mini">Guardar</button><button id="skip" class="btn-ghost btn-mini">Pasar</button><button id="known" class="btn-ghost btn-mini">Ya me la sé</button></div></article></div>`;
   root.querySelector('#play').onclick = () => speakText(entry.text, 'de-DE');
 
   const mark = (status) => {
     const reviewedDeck = ensureReviewedDeck();
-    const destinationId = status === 'saved' ? ((getDecks().find((d) => d.id === getSelectedDeckId()) || getDecks().find((d) => d.name !== reviewedDeckName) || reviewedDeck).id) : reviewedDeck.id;
-    saveCards([...getCards(), { id: uid(), deckId: reviewedDeck.id, text: entry.text, translation: translation || '', source: 'explore', sourceItemId: entry.id, exploreStatus: status, inputLang: 'de' }]);
-    saveExploreState({ ...getExploreState(), [entry.id]: { ...(getExploreState()[entry.id] || {}), status, reviewedDeckId: destinationId } });
+    const selectedDeckId = getSelectedDeckId();
+    const saveDeckId = (status === 'saved' && getDecks().some((d) => d.id === selectedDeckId)) ? selectedDeckId : reviewedDeck.id;
+    saveCards([...getCards(), { id: uid(), deckId: saveDeckId, text: entry.text, translation: translation || '', source: 'explore', sourceItemId: entry.id, exploreStatus: status, inputLang: 'de' }]);
+    saveExploreState({ ...getExploreState(), [entry.id]: { ...(getExploreState()[entry.id] || {}), status } });
+    localStorage.removeItem(CURRENT_KEY);
     renderExplore(root);
   };
   root.querySelector('#save').onclick = () => mark('saved');
